@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050b14">
+<title>M.A.X.</title>
+<style>
+:root{--bg:#050b14;--panel:#0a1626;--panel2:#0e2036;--line:#173452;--cy:#38d6ff;--amber:#ffb347;--tx:#d9edf8;--dim:#7f9bb1}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:radial-gradient(1200px 600px at 70% -10%,#0b2440 0,var(--bg) 60%);color:var(--tx);font:16px/1.55 "Segoe UI",Roboto,system-ui,sans-serif;display:flex;height:100dvh;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:.5rem .8rem;cursor:pointer}
+button:hover{border-color:var(--cy)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--cy);outline-offset:2px}
+input,select,textarea{background:#07111f;border:1px solid var(--line);border-radius:10px;padding:.5rem .7rem;width:100%}
+input[type=checkbox]{width:auto}
+label{display:block;margin:.7rem 0 .2rem;color:var(--dim);font-size:.9rem}
+.dim{color:var(--dim);font-size:.9rem}
+.row{display:flex;gap:.5rem;align-items:center;padding:.7rem}
+.sp{flex:1}
+#side{width:270px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;flex:none;z-index:5;transition:transform .2s}
+#list{flex:1;overflow:auto;padding:0 .5rem}
+.item{display:flex;gap:.3rem;align-items:center;margin:.2rem 0}
+.item button:first-child{flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-color:transparent;background:transparent}
+.item.on button:first-child{background:var(--panel2);border-color:var(--line)}
+.item button:last-child{border-color:transparent;background:transparent;padding:.4rem .6rem}
+main{flex:1;display:flex;flex-direction:column;min-width:0}
+header{display:flex;align-items:center;gap:.7rem;padding:.6rem .9rem;border-bottom:1px solid var(--line)}
+#menu{display:none}
+#msgs{flex:1;overflow:auto;padding:1rem;display:flex;flex-direction:column;gap:.9rem}
+.hello{margin:auto;color:var(--dim);font-size:1.2rem;text-align:center;max-width:30ch}
+.msg{max-width:min(760px,92%);padding:.7rem 1rem;border-radius:14px;border:1px solid var(--line);overflow-wrap:anywhere}
+.user{align-self:flex-end;background:#0f2a47}
+.ai{align-self:flex-start;background:var(--panel)}
+.msg img{max-width:200px;border-radius:8px;display:block;margin-top:.5rem}
+pre{background:#030810;border:1px solid var(--line);border-radius:8px;padding:.6rem;overflow:auto;white-space:pre-wrap;margin:.4rem 0}
+code{font-family:Consolas,"Courier New",monospace;font-size:.92em}
+#pend{display:flex;gap:.4rem;flex-wrap:wrap;padding:0 1rem}
+.chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.15rem .7rem;font-size:.85rem;cursor:pointer}
+footer{display:flex;gap:.5rem;padding:.7rem 1rem;border-top:1px solid var(--line);align-items:flex-end}
+footer textarea{resize:none;max-height:9rem}
+#go{background:var(--cy);color:#02202c;border-color:var(--cy);font-weight:600}
+#mic.hot{border-color:var(--amber);color:var(--amber)}
+.orb{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);position:relative;flex:none}
+.orb::before{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--cy);opacity:.35}
+.orb::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid transparent;border-top-color:var(--cy);border-right-color:var(--cy)}
+.orb.listen::after{animation:spin 3s linear infinite}
+.orb.think::after{animation:spin .8s linear infinite;border-top-color:var(--amber);border-right-color:var(--amber)}
+.orb.speak::before{animation:pulse .6s ease-in-out infinite alternate;opacity:.9}
+.orb.big{width:180px;height:180px;border-width:3px}
+.orb.big::before{inset:30px}
+.orb.big::after{border-width:4px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{to{transform:scale(.7);opacity:.4}}
+@media(prefers-reduced-motion:reduce){.orb::after,.orb::before{animation:none!important}}
+#call{position:fixed;inset:0;background:rgba(5,11,20,.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.3rem;z-index:20;padding:1.5rem;text-align:center}
+#call.on{display:flex}
+#live{min-height:3rem;font-size:1.2rem;max-width:36ch}
+dialog{background:var(--panel);color:var(--tx);border:1px solid var(--line);border-radius:14px;max-width:560px;width:92%;max-height:90vh;overflow:auto}
+dialog::backdrop{background:rgba(0,0,0,.65)}
+.btns{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
+.toast{position:fixed;left:50%;bottom:5rem;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--cy);border-radius:10px;padding:.6rem 1rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:30;max-width:90%}
+.toast.on{opacity:1}
+@media(max-width:760px){
+ #side{position:fixed;inset:0 auto 0 0;transform:translateX(-100%)}
+ #side.open{transform:none}
+ #menu{display:inline-block}
+}
+</style>
+</head>
+<body>
+<aside id="side">
+ <div class="row"><b>M.A.X.</b><span class="sp"></span><button id="new">New chat</button></div>
+ <div id="list"></div>
+ <div class="row"><button id="memBtn">Memory</button><button id="setBtn">Settings</button></div>
+</aside>
+<main>
+ <header>
+  <button id="menu" aria-label="Conversations">☰</button>
+  <div class="orb" id="orb"></div>
+  <b id="title">M.A.X.</b>
+  <span class="sp"></span>
+  <button id="callBtn">Call</button>
+ </header>
+ <div id="msgs" aria-live="polite"></div>
+ <div id="pend"></div>
+ <footer>
+  <button id="attach" title="Attach an image or text file" aria-label="Attach file">+</button>
+  <textarea id="in" rows="1" placeholder="Message M.A.X."></textarea>
+  <button id="mic" title="Dictate" aria-label="Dictate">Mic</button>
+  <button id="go">Send</button>
+ </footer>
+</main>
+<input type="file" id="file" multiple hidden accept="image/*,.txt,.md,.csv,.json,.js,.py,.html,.css,.xml,.log">
+<input type="file" id="imp" hidden accept=".json">
+
+<div id="call">
+ <div class="orb big" id="bigorb"></div>
+ <div id="live">Listening…</div>
+ <div class="dim">Speak naturally and interrupt at any time. Headphones work best, as speakers can make M.A.X. hear itself.</div>
+ <button id="endCall">End call</button>
+</div>
+
+<dialog id="set">
+ <h2 style="margin-top:0">Settings</h2>
+ <label>AI name</label><input data-k="aiName">
+ <label>What it calls you</label><input data-k="userName">
+ <label>Personality and manner</label><textarea data-k="personality" rows="4"></textarea>
+ <label>AI provider</label>
+ <select data-k="provider">
+  <option value="openai">OpenAI (needs an API key; paid)</option>
+  <option value="ollama">Local model via Ollama (free, works offline)</option>
+  <option value="custom">Other OpenAI-compatible service</option>
+ </select>
+ <label>Endpoint address (Ollama or other service only)</label><input data-k="endpoint" placeholder="http://localhost:11434/v1">
+ <label>Model name</label><input data-k="model" list="models"><datalist id="models"></datalist>
+ <div class="btns"><button id="findModels">Find local models</button></div>
+ <label>API key (stored only in this browser on this device)</label><input data-k="apiKey" type="password" autocomplete="off">
+ <label>Voice</label><select data-k="voiceURI" id="voice"></select>
+ <label>Accent and recognition language</label>
+ <select data-k="lang"><option value="en-GB">English (UK)</option><option value="en-US">English (US)</option><option value="en-AU">English (Australia)</option><option value="en-CA">English (Canada)</option><option value="en-IN">English (India)</option></select>
+ <label>Speaking speed</label><input type="range" data-k="rate" min="0.7" max="1.4" step="0.05">
+ <label>Voice pitch</label><input type="range" data-k="pitch" min="0.7" max="1.3" step="0.05">
+ <label><input type="checkbox" data-k="autoSpeak"> Read every reply aloud</label>
+ <label><input type="checkbox" data-k="interrupt"> Let me interrupt during a call (use headphones)</label>
+ <label><input type="checkbox" data-k="wake"> Wake word: say “Hey Max” (the page must stay open)</label>
+ <div class="btns">
+  <button id="saveSet" style="background:var(--cy);color:#02202c">Save</button>
+  <button id="testVoice">Test voice</button>
+  <button id="exp">Export backup</button>
+  <button id="impBtn">Import backup</button>
+  <button id="wipe">Erase everything</button>
+  <button id="closeSet">Close</button>
+ </div>
+ <p class="dim"><b>Using Ollama from this file:</b> the page must be allowed to talk to it. In PowerShell run <code>setx OLLAMA_ORIGINS "*"</code>, then quit Ollama from the tray and start it again.</p>
+ <p class="dim">Your API key sits in this browser and is sent only to the provider you choose. Never put this page, with a key saved in it, on a public website. Backups never include your key. Chrome’s voice recognition needs an internet connection; a local model still works offline by typing.</p>
+</dialog>
+
+<dialog id="mem">
+ <h2 style="margin-top:0">Memory</h2>
+ <p class="dim">M.A.X. reads these notes in every conversation. Say “remember that…” in chat to add one.</p>
+ <div id="memlist"></div>
+ <label>Add a note</label><input id="memIn" placeholder="e.g. I prefer free tools">
+ <div class="btns"><button id="memAdd">Add</button><button id="memClear">Delete all</button><button id="memClose">Close</button></div>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const $=s=>document.querySelector(s),KEY='max.v2';
+const BASE=['You are M.A.X. (Multimodal Adaptive eXecutive), a personal AI assistant inspired by J.A.R.V.I.S. and Vision.',
+'Be calm, loyal, thoughtful and professional, with a refined British manner and subtle dry wit.',
+'Reason carefully and give accurate, practical answers. For code or practical projects, explain for a beginner and prefer free tools.',
+'Be honest about uncertainty and limitations. Never claim to have done something you have not done: you cannot browse the web, run code or open files unless the conversation itself shows that you have been given the result. Disagree respectfully when warranted.'].join('\n');
+const D={aiName:'M.A.X.',userName:'Sir',personality:'Calm, loyal and quietly witty, with a refined British manner. Precise rather than verbose; dry humour in small doses.',provider:'openai',endpoint:'http://localhost:11434/v1',model:'gpt-4o-mini',apiKey:'',voiceURI:'',lang:'en-GB',rate:1,pitch:1,autoSpeak:false,interrupt:true,wake:false};
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let S=load(),pending=[],busy=false,ctrl=null,call=false,rec=null,speaking=0,spBuf='',lock=null;
+
+function load(){try{const j=JSON.parse(localStorage.getItem(KEY));if(j)return{settings:{...D,...j.settings},convs:j.convs||[],cur:j.cur||null,memories:j.memories||[]}}catch{}return{settings:{...D},convs:[],cur:null,memories:[]}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S,(k,v)=>k==='imgs'?undefined:v))}catch{toast('Storage is full. Export a backup, then delete old chats.')}}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),5000)}
+function esc(t){return t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+function md(t){let h=esc(t).replace(/```\w*\n?([\s\S]*?)(```|$)/g,(m,c)=>'<pre><code>'+c+'</code></pre>').replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>');return h.split(/(<pre>[\s\S]*?<\/pre>)/).map((p,i)=>i%2?p:p.replace(/\n/g,'<br>')).join('')}
+function conv(){let c=S.convs.find(x=>x.id===S.cur);if(!c){c={id:Date.now()+'',title:'New conversation',msgs:[]};S.convs.unshift(c);S.cur=c.id}return c}
+
+function render(){
+ const c=S.convs.find(x=>x.id===S.cur);
+ $('#title').textContent=S.settings.aiName;
+ const l=$('#list');l.innerHTML='';
+ S.convs.forEach(x=>{
+  const d=document.createElement('div');d.className='item'+(x.id===S.cur?' on':'');
+  const b=document.createElement('button');b.textContent=x.title;b.onclick=()=>{S.cur=x.id;save();render();$('#side').classList.remove('open')};
+  const del=document.createElement('button');del.textContent='✕';del.title='Delete conversation';del.setAttribute('aria-label','Delete conversation');
+  del.onclick=()=>{if(confirm('Delete this conversation?')){S.convs=S.convs.filter(y=>y.id!==x.id);if(S.cur===x.id)S.cur=null;save();render()}};
+  d.append(b,del);l.append(d);
+ });
+ const m=$('#msgs');m.innerHTML='';
+ if(!c||!c.msgs.length){const g=document.createElement('div');g.className='hello';const h=new Date().getHours();g.textContent='Good '+(h<12?'morning':h<18?'afternoon':'evening')+', '+S.settings.userName+'. How may I be of service?';m.append(g)}
+ else c.msgs.forEach(x=>m.append(bubble(x)));
+ m.scrollTop=m.scrollHeight;ring();
+}
+function bubble(x){const d=document.createElement('div');d.className='msg '+(x.role==='user'?'user':'ai');d.innerHTML=md(x.content||'…');(x.imgs||[]).forEach(s=>{const i=new Image();i.alt='Attached image';i.src=s;d.append(i)});return d}
+function ring(){const s=speaking?'speak':busy?'think':(call||rec)?'listen':'';document.querySelectorAll('.orb').forEach(o=>{o.classList.remove('listen','think','speak');if(s)o.classList.add(s)})}
+
+function persona(){
+ const s=S.settings;
+ return 'Your name is '+s.aiName+'. Address the user as "'+s.userName+'". Personality and manner: '+s.personality+'\nUse British English. The current date and time is '+new Date().toLocaleString('en-GB')+'.'
+ +(S.memories.length?'\n\nLong-term memory (things you know about the user):\n'+S.memories.map(m=>'- '+m.text).join('\n'):'')
+ +(call?'\n\nThe user is speaking to you on a voice call. Reply in short, natural spoken sentences with no markdown, lists or code blocks.':'');
+}
+
+async function send(text){
+ text=(text||'').trim();
+ if(busy||(!text&&!pending.length))return;
+ const c=conv(),mc=text.match(/^(?:please\s+)?remember(?:\s+that)?[:\s]+(.+)/i);
+ if(mc)S.memories.push({id:Date.now(),text:mc[1].trim()});
+ let content=text;const imgs=[];
+ pending.forEach(f=>f.img?imgs.push(f.data):content+='\n\n[Attached file: '+f.name+']\n'+f.data);
+ pending=[];renderPending();
+ if(c.title==='New conversation')c.title=(text||'Image').slice(0,40);
+ c.msgs.push({role:'user',content,imgs});
+ const reply={role:'assistant',content:''};c.msgs.push(reply);
+ render();const el=$('#msgs').lastElementChild;
+ const hist=c.msgs.slice(0,-1).slice(-30).map((m,i,a)=>(m.imgs&&m.imgs.length&&i===a.length-1)
+  ?{role:'user',content:[{type:'text',text:m.content||'Please describe this image.'},...m.imgs.map(u=>({type:'image_url',image_url:{url:u}}))]}
+  :{role:m.role,content:m.content});
+ busy=true;ctrl=new AbortController();$('#go').textContent='Stop';ring();
+ const s=S.settings;let base,key;
+ try{
+  if(s.provider==='openai'){base='https://api.openai.com/v1';key=s.apiKey;if(!key)throw new Error('No API key yet. Open Settings and paste your key, or switch to a local model.')}
+  else{base=(s.endpoint||'').trim().replace(/\/$/,'');if(!base)throw new Error('Add an endpoint address in Settings.');key=s.apiKey||'none'}
+  const r=await fetch(base+'/chat/completions',{method:'POST',signal:ctrl.signal,
+   headers:{'Content-Type':'application/json',Authorization:'Bearer '+key},
+   body:JSON.stringify({model:s.model,stream:true,messages:[{role:'system',content:BASE+'\n\n'+persona()},...hist]})});
+  if(!r.ok){let m='The AI provider returned error '+r.status+'.';try{const j=await r.json();m=(j.error&&j.error.message)||m}catch{}throw new Error(m)}
+  const rd=r.body.getReader(),dec=new TextDecoder();let buf='';
+  for(;;){
+   const{done,value}=await rd.read();if(done)break;
+   buf+=dec.decode(value,{stream:true});let i;
+   while((i=buf.indexOf('\n'))>=0){
+    const line=buf.slice(0,i).trim();buf=buf.slice(i+1);
+    if(!line.startsWith('data:'))continue;const d=line.slice(5).trim();if(d==='[DONE]')continue;
+    try{const ch=JSON.parse(d).choices;const t=ch&&ch[0]&&ch[0].delta&&ch[0].delta.content;
+     if(t){reply.content+=t;el.innerHTML=md(reply.content);$('#msgs').scrollTop=$('#msgs').scrollHeight;speakFeed(t)}}catch{}
+   }
+  }
+ }catch(e){
+  if(e.name!=='AbortError'){
+   const msg=e instanceof TypeError?(s.provider==='ollama'?'I cannot reach Ollama at '+base+'. Check that it is running, and that you have allowed this page (see the note in Settings).':'I cannot reach the AI provider. Check your connection and the endpoint address.'):e.message;
+   reply.content+=(reply.content?'\n\n':'')+'⚠ '+msg;el.innerHTML=md(reply.content);
+  }
+ }finally{
+  busy=false;ctrl=null;$('#go').textContent='Send';speakFlush();
+  if(!reply.content){reply.content='(stopped)';el.innerHTML=md(reply.content)}
+  save();ring();
+ }
+}
+
+/* ---------- speech out ---------- */
+function pickVoice(){const v=speechSynthesis.getVoices();return v.find(x=>x.voiceURI===S.settings.voiceURI)||v.find(x=>x.lang===S.settings.lang)||v.find(x=>x.lang.slice(0,2)===S.settings.lang.slice(0,2))}
+function say(t){
+ t=t.replace(/```[\s\S]*?```/g,' (code omitted) ').replace(/[*_`#]/g,'').trim();if(!t)return;
+ const u=new SpeechSynthesisUtterance(t),v=pickVoice();if(v)u.voice=v;
+ u.lang=S.settings.lang;u.rate=+S.settings.rate;u.pitch=+S.settings.pitch;
+ u.onstart=()=>{speaking++;ring()};u.onend=u.onerror=()=>{speaking=Math.max(0,speaking-1);ring()};
+ speechSynthesis.speak(u);
+}
+function speakFeed(t){
+ if(!(call||S.settings.autoSpeak))return;
+ spBuf+=t;if((spBuf.match(/```/g)||[]).length%2)return;
+ let m;while((m=spBuf.match(/^([\s\S]*?[.!?:\n])\s/))){say(m[1]);spBuf=spBuf.slice(m[0].length)}
+}
+function speakFlush(){if(spBuf.trim()&&(call||S.settings.autoSpeak))say(spBuf);spBuf=''}
+function interrupt(){speechSynthesis.cancel();speaking=0;spBuf='';if(ctrl)ctrl.abort();ring()}
+
+/* ---------- speech in, call mode, wake word ---------- */
+function wakeRe(){const n=[...new Set(['max','maks',S.settings.aiName.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim()])].filter(Boolean).join('|');return new RegExp('\\b(?:hey|hi|okay|ok)[ ,]+(?:'+n+')\\b','i')}
+function startRec(){
+ if(!SR){toast('Voice input needs Chrome or another browser with speech recognition.');return false}
+ if(rec)return true;
+ const r=rec=new SR();r.lang=S.settings.lang;r.continuous=true;r.interimResults=true;
+ r.onresult=e=>{
+  let fin='',itm='';
+  for(let i=e.resultIndex;i<e.results.length;i++){const x=e.results[i];if(x.isFinal)fin+=x[0].transcript;else itm+=x[0].transcript}
+  const heard=(fin||itm).trim();if(!heard)return;
+  if(call){
+   if(speaking||busy){if(S.settings.interrupt)interrupt();else return}
+   $('#live').textContent=heard;
+   if(fin.trim()){if(busy)setTimeout(()=>send(fin),150);else send(fin)}
+  }else if(fin){
+   const m=fin.match(wakeRe());
+   if(m)startCall(fin.slice(m.index+m[0].length).replace(/^[,.\s]+/,''));
+  }
+ };
+ r.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){call=false;S.settings.wake=false;save();$('#call').classList.remove('on');toast('Microphone access was blocked. Allow it in Chrome’s site settings, or open this file again and press Allow.')}else if(e.error==='network'){toast('Voice recognition needs an internet connection.')}};
+ r.onend=()=>{if(rec===r)rec=null;ring();if(call||S.settings.wake)setTimeout(startRec,300)};
+ try{r.start()}catch{}
+ ring();return true;
+}
+function stopRec(){const r=rec;rec=null;try{r&&r.abort()}catch{}ring()}
+async function startCall(first){
+ if(call)return;
+ if(!startRec())return;
+ call=true;$('#call').classList.add('on');$('#live').textContent='Listening…';
+ try{lock=await navigator.wakeLock?.request('screen')}catch{}
+ ring();if(first)send(first);
+}
+function endCall(){call=false;$('#call').classList.remove('on');interrupt();try{lock&&lock.release()}catch{}lock=null;if(!S.settings.wake)stopRec();ring()}
+function applyWake(){if(call)return;if(S.settings.wake)startRec();else stopRec()}
+
+/* ---------- files ---------- */
+async function shrink(f){const b=await createImageBitmap(f),k=Math.min(1,1280/Math.max(b.width,b.height)),c=document.createElement('canvas');c.width=b.width*k;c.height=b.height*k;c.getContext('2d').drawImage(b,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.85)}
+function renderPending(){const p=$('#pend');p.innerHTML='';pending.forEach((f,i)=>{const c=document.createElement('button');c.className='chip';c.textContent=f.name+' ✕';c.onclick=()=>{pending.splice(i,1);renderPending()};p.append(c)})}
+
+/* ---------- settings, memory, backups ---------- */
+function fillVoices(){const s=$('#voice');s.innerHTML='<option value="">Automatic (best match for the accent)</option>'+speechSynthesis.getVoices().map(v=>'<option value="'+esc(v.voiceURI)+'">'+esc(v.name+' ('+v.lang+')')+'</option>').join('')}
+function openSet(){fillVoices();document.querySelectorAll('[data-k]').forEach(e=>{const v=S.settings[e.dataset.k];if(e.type==='checkbox')e.checked=!!v;else e.value=v});$('#set').showModal()}
+function saveSet(){document.querySelectorAll('[data-k]').forEach(e=>{S.settings[e.dataset.k]=e.type==='checkbox'?e.checked:e.type==='range'?+e.value:e.value.trim()});save();applyWake();render();$('#set').close();toast('Settings saved.')}
+function openMem(){
+ const l=$('#memlist');l.innerHTML='';
+ S.memories.forEach(m=>{const d=document.createElement('div');d.className='item';const s=document.createElement('span');s.className='sp';s.textContent=m.text;const b=document.createElement('button');b.textContent='Delete';b.onclick=()=>{S.memories=S.memories.filter(x=>x.id!==m.id);save();openMem()};d.append(s,b);l.append(d)});
+ if(!S.memories.length)l.textContent='Nothing stored yet.';
+ if(!$('#mem').open)$('#mem').showModal();
+}
+function exportAll(){const o={...S,settings:{...S.settings,apiKey:''}};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,(k,v)=>k==='imgs'?undefined:v,1)],{type:'application/json'}));a.download='max-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click()}
+async function importAll(f){try{const j=JSON.parse(await f.text());if(!Array.isArray(j.convs))throw 0;S={convs:j.convs,cur:j.cur||null,memories:j.memories||[],settings:{...D,...j.settings,apiKey:S.settings.apiKey}};save();render();toast('Backup restored.')}catch{toast('That file is not a valid M.A.X. backup.')}}
+async function findModels(){
+ const ep=document.querySelector('[data-k=endpoint]').value.trim().replace(/\/v1\/?$/,'').replace(/\/$/,'');
+ try{const j=await(await fetch(ep+'/api/tags')).json();const names=(j.models||[]).map(m=>m.name);$('#models').innerHTML=names.map(m=>'<option value="'+esc(m)+'">').join('');toast(names.length?names.length+' local model(s) found. Pick one in the Model box.':'No local models found. Install one with Ollama, for example: ollama pull llama3.2')}
+ catch{toast('Could not reach Ollama. Is it running, and did you allow this page (see the note below)?')}
+}
+
+/* ---------- wiring ---------- */
+$('#new').onclick=()=>{S.cur=null;render();$('#side').classList.remove('open');$('#in').focus()};
+$('#menu').onclick=()=>$('#side').classList.toggle('open');
+$('#go').onclick=()=>{if(busy){interrupt();return}const v=$('#in').value;$('#in').value='';send(v)};
+$('#in').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&innerWidth>760){e.preventDefault();$('#go').click()}});
+$('#in').addEventListener('input',e=>{e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,144)+'px'});
+$('#attach').onclick=()=>$('#file').click();
+$('#file').onchange=async e=>{
+ for(const f of e.target.files){
+  try{
+   if(f.type.startsWith('image/'))pending.push({name:f.name,img:true,data:await shrink(f)});
+   else if(f.size<500000)pending.push({name:f.name,data:(await f.text()).slice(0,30000)});
+   else toast(f.name+' is too large (the limit is about 500 KB of text).');
+  }catch{toast('Could not read '+f.name+'.')}
+ }
+ e.target.value='';renderPending();
+};
+$('#mic').onclick=()=>{
+ if(!SR)return toast('Dictation needs Chrome or another browser with speech recognition.');
+ if(call)return;
+ const d=new SR();d.lang=S.settings.lang;d.interimResults=true;
+ d.onresult=e=>{$('#in').value=[...e.results].map(r=>r[0].transcript).join('')};
+ d.onend=()=>$('#mic').classList.remove('hot');
+ d.onerror=()=>toast('Dictation failed. Check microphone permission and your connection.');
+ $('#mic').classList.add('hot');try{d.start()}catch{}
+};
+$('#callBtn').onclick=()=>startCall();
+$('#endCall').onclick=endCall;
+$('#setBtn').onclick=openSet;$('#closeSet').onclick=()=>$('#set').close();$('#saveSet').onclick=saveSet;
+document.querySelector('[data-k=provider]').onchange=e=>{const ep=document.querySelector('[data-k=endpoint]');if(e.target.value==='ollama')ep.value='http://localhost:11434/v1';else if(e.target.value==='custom'&&ep.value.includes('11434'))ep.value=''};
+$('#testVoice').onclick=()=>{speechSynthesis.cancel();const keep=S.settings;S.settings={...keep,voiceURI:$('#voice').value,lang:document.querySelector('[data-k=lang]').value,rate:document.querySelector('[data-k=rate]').value,pitch:document.querySelector('[data-k=pitch]').value};say('Good day. All systems are functioning normally.');S.settings=keep};
+$('#findModels').onclick=findModels;
+$('#exp').onclick=exportAll;$('#impBtn').onclick=()=>$('#imp').click();
+$('#imp').onchange=e=>{if(e.target.files[0])importAll(e.target.files[0]);e.target.value=''};
+$('#wipe').onclick=()=>{if(confirm('Erase all conversations, memories and settings from this browser?')){localStorage.removeItem(KEY);location.reload()}};
+$('#memBtn').onclick=openMem;$('#memClose').onclick=()=>$('#mem').close();
+$('#memAdd').onclick=()=>{const v=$('#memIn').value.trim();if(v){S.memories.push({id:Date.now(),text:v});$('#memIn').value='';save();openMem()}};
+$('#memClear').onclick=()=>{if(confirm('Delete every memory?')){S.memories=[];save();openMem()}};
+speechSynthesis.onvoiceschanged=fillVoices;
+render();applyWake();
+</script>
+</body>
+</html>
